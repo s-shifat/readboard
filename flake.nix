@@ -1,8 +1,8 @@
 {
-  description = "A very basic flake";
+  description = "Readboard: Hyprshot + OCR (Wayland)";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs?ref=nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -18,37 +18,53 @@
       ps.pillow
     ]);
 
-    # App runtime env: python + tools your script calls at runtime
+    # Runtime env: Python + tools needed at runtime
     appEnv = pkgs.buildEnv {
       name = "readboard-env";
       paths = [
         py
         pkgs.hyprshot
-        pkgs.grim
-        pkgs.slurp
         pkgs.wl-clipboard
-        pkgs.tesseract      # pytesseract needs this binary
+        pkgs.tesseract
+        # pkgs.grim   # not required explicitly
+        # pkgs.slurp  # not required explicitly
       ];
     };
 
-    # Launcher
+    # Launcher wrapping your main.py with the env on PATH
     runner = pkgs.writeShellScriptBin "readboard" ''
-      # Ensure the app env is used (python + tools in PATH)
       export PATH=${appEnv}/bin:$PATH
-      exec ${appEnv}/bin/python3 ${self}/main.py
+      exec ${appEnv}/bin/python3 ${self}/main.py "$@"
     '';
   in {
+    # nix run .
     apps.${system}.default = {
       type = "app";
       program = "${runner}/bin/readboard";
     };
 
+    # nix profile add .  /  nix profile add github:user/repo
+    packages.${system} = {
+      readboard = runner;
+      default = runner;
+    };
+
+    # nix develop  (shell for hacking)
     devShells.${system}.default = pkgs.mkShell {
       packages = with pkgs; [
         py
         uv
-        hyprshot grim slurp wl-clipboard tesseract
+        hyprshot
+        wl-clipboard
+        tesseract
       ];
+
+      # Optional: helpful env hints
+      shellHook = ''
+        echo "Readboard dev shell:"
+        echo "  - run: python main.py"
+        echo "  - or:  readboard"
+      '';
     };
   };
 }
