@@ -59,7 +59,7 @@ nix run github:s-shifat/readboard
 ### Install system-wide (per user)
 
 ```bash
-nix profile install github:s-shifat/readboard
+nix profile add github:s-shifat/readboard
 ```
 
 This makes the `readboard` command available globally for your user.
